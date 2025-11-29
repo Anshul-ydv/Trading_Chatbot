@@ -1,0 +1,34 @@
+{
+  "RELIANCE_1d": {
+    "path": "/Users/anshulyadav/Desktop/TCHATBOT/trading-chatbot/data/cache/raw/RELIANCE_1d.parquet",
+    "updated_at": "2025-11-27T04:52:47.577819+00:00"
+  },
+  "TCS_1d": {
+    "path": "/Users/anshulyadav/Desktop/TCHATBOT/trading-chatbot/data/cache/raw/TCS_1d.parquet",
+    "updated_at": "2025-11-27T04:52:49.393377+00:00"
+  },
+  "INFY_1d": {
+    "path": "/Users/anshulyadav/Desktop/TCHATBOT/trading-chatbot/data/cache/raw/INFY_1d.parquet",
+    "updated_at": "2025-11-27T04:52:47.955838+00:00"
+  },
+  "HDFCBANK_1d": {
+    "path": "/Users/anshulyadav/Desktop/TCHATBOT/trading-chatbot/data/cache/raw/HDFCBANK_1d.parquet",
+    "updated_at": "2025-11-27T04:52:48.333874+00:00"
+  },
+  "ICICIBANK_1d": {
+    "path": "/Users/anshulyadav/Desktop/TCHATBOT/trading-chatbot/data/cache/raw/ICICIBANK_1d.parquet",
+    "updated_at": "2025-11-27T04:52:48.612285+00:00"
+  },
+  "SBIN_1d": {
+    "path": "/Users/anshulyadav/Desktop/TCHATBOT/trading-chatbot/data/cache/raw/SBIN_1d.parquet",
+    "updated_at": "2025-11-27T04:52:48.851523+00:00"
+  },
+  "TATASTEEL_1d": {
+    "path": "/Users/anshulyadav/Desktop/TCHATBOT/trading-chatbot/data/cache/raw/TATASTEEL_1d.parquet",
+    "updated_at": "2025-11-24T14:32:57.747673+00:00"
+  },
+  "IDEA_1d": {
+    "path": "/Users/anshulyadav/Desktop/TCHATBOT/trading-chatbot/data/cache/raw/IDEA_1d.parquet",
+    "updated_at": "2025-11-27T04:52:49.140236+00:00"
+  }
+}

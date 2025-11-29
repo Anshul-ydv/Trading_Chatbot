@@ -1,0 +1,65 @@
+{
+  "RELIANCE": {
+    "market_cap": 1800000,
+    "pe_ratio": 24.5,
+    "roe": 16.2,
+    "debt_to_equity": 0.6,
+    "promoter_holding": 50.3,
+    "sales_growth_3y": 18.4,
+    "profit_growth_3y": 15.7
+  },
+  "TCS": {
+    "market_cap": 1300000,
+    "pe_ratio": 28.1,
+    "roe": 38.5,
+    "debt_to_equity": 0.2,
+    "promoter_holding": 72.0,
+    "sales_growth_3y": 11.3,
+    "profit_growth_3y": 12.7
+  },
+  "INFY": {
+    "market_cap": 800000,
+    "pe_ratio": 23.8,
+    "roe": 30.2,
+    "debt_to_equity": 0.1,
+    "promoter_holding": 15.0,
+    "sales_growth_3y": 13.5,
+    "profit_growth_3y": 11.9
+  },
+  "HDFCBANK": {
+    "market_cap": 900000,
+    "pe_ratio": 20.2,
+    "roe": 18.8,
+    "debt_to_equity": 0.0,
+    "promoter_holding": 25.8,
+    "sales_growth_3y": 17.1,
+    "profit_growth_3y": 19.4
+  },
+  "ICICIBANK": {
+    "market_cap": 700000,
+    "pe_ratio": 21.7,
+    "roe": 17.9,
+    "debt_to_equity": 0.0,
+    "promoter_holding": 0.0,
+    "sales_growth_3y": 16.5,
+    "profit_growth_3y": 24.0
+  },
+  "SBIN": {
+    "market_cap": 750000,
+    "pe_ratio": 9.5,
+    "roe": 16.8,
+    "debt_to_equity": 1.2,
+    "promoter_holding": 57.5,
+    "sales_growth_3y": 14.2,
+    "profit_growth_3y": 22.1
+  },
+  "TATASTEEL": {
+    "market_cap": 190000,
+    "pe_ratio": 42.5,
+    "roe": 3.5,
+    "debt_to_equity": 0.8,
+    "promoter_holding": 33.9,
+    "sales_growth_3y": 12.4,
+    "profit_growth_3y": -5.2
+  }
+}

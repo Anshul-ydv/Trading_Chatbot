@@ -1,0 +1,243 @@
+
+# 1 — High-level summary (one line)
+
+A web app with a FastAPI backend that streams realtime daily quotes (via Fyers or fallback), runs daily-timeframe TA + fundamental filters, ranks stocks per strategy, and exposes a chat UI (React) that answers questions using retrieval + an LLM for explanations.
+
+---
+
+# 2 — Design constraints you gave (honour)
+
+* Timeframe: **daily (1d)** only — all TA, signals, and strategy rules use daily OHLCV.
+* Indian market focus.
+* Keep stack **simple** and demo-friendly.
+* Use Fyers API if needed for realtime quotes; fallback: nsepy/historical cached data + periodic polling.
+
+---
+
+# 3 — Simple tech stack (minimal, easy to demo)
+
+* Backend: **FastAPI** (Python) — REST + WebSocket endpoints.
+* Frontend: **React** (Create React App or Vite) — chat UI + tables + charts.
+* Persistence: **SQLite** (small cache + metadata).
+* Realtime messaging: FastAPI WebSocket → frontend WebSocket.
+* TA & data libs: `pandas`, `nsepy` (historical daily), `pandas_ta` (indicators).
+* Scraping fundamentals: `requests`, `BeautifulSoup` (Screener.in).
+* LLM/chat: **OpenAI** (or local LLM) for natural explanations + optionally embeddings from sentence-transformers.
+* Optional broker: **Fyers** API (for live quotes & streaming) — use paper/demo only.
+
+Why: minimal dependencies, reproducible, easy to present in university demo.
+
+---
+
+# 4 — Architecture & dataflow (concise)
+
+1. **Data Layer**
+
+   * Historical daily OHLCV: `nsepy` fetcher → cached to `data/raw/{TICKER}.parquet`
+   * Fundamentals: `screener_scraper` → store as JSON in `data/fundamentals/`
+   * Live daily quotes: either Fyers websocket or periodic poll (FastAPI background task) for latest daily candle or EOD price.
+
+2. **Processing Layer**
+
+   * `ta_engine`: compute indicators on daily OHLCV; detect patterns & generate signals.
+   * `strategy_engine`: per-ticker compute `strategy_score` for selected strategy (Breakout / Swing / Day) using TA + liquidity rules.
+   * `scoring_service`: aggregate scores and produce ranked stocks.
+
+3. **Backend API**
+
+   * REST: `/api/screen?strategy=breakout` → returns ranked stocks + metadata
+   * REST: `/api/ticker/{t}/details` → returns TA summary, fundamentals, recent news
+   * WebSocket: `/ws/updates` → push live ranked lists & price updates
+   * Chat: `/api/chat` → user message -> retrieval -> LLM -> response
+
+4. **Frontend**
+
+   * React app: chat window, ranked list, per-ticker detail page with chart, settings panel to choose strategy & thresholds.
+   * Connects websocket to receive live updates; requests REST endpoints for details.
+
+---
+
+# 5 — UI / UX (what user sees)
+
+* Left panel: **Strategy selector** (Breakout / Swing / Day), “Run Now” button, refresh/poll toggle.
+* Center: **Ranked Stocks Table** (Ticker, Score, Signal, Last Close, Volume, 1-line reason). Click a row to open detail.
+* Right: **Chat window** (conversational agent) — ask “Why is TICKER in top 5?” / “Show me breakout candidates today” / “Explain risk”.
+* Detail modal: interactive Plotly chart for daily candles with annotated detected patterns, entry/stop/target markers, and fundamentals summary.
+* Toasts/indicators: live update badge when new ranking available.
+
+---
+
+# 6 — Strategy & ranking (daily timeframe rules — succinct)
+
+All strategy scoring works on daily OHLCV.
+
+A. **Breakout (daily)**
+
+* Detect consolidation: X last trading days form range (low_high_range <= Y% of mean price).
+* Breakout condition: today’s close > previous range high AND volume_today >= 1.5 * avg(volume, 20).
+* Score factors: breakout confirmation (0/1), volume multiplier (continuous), momentum (RSI/ADX), ATR-based volatility.
+* Entry: next open or close after breakout; Stop: consolidation low or ATR*1.5; Target: measured move (range height) or 2*risk.
+
+B. **Swing (daily)**
+
+* Trend check: price above 50-day SMA (trend bullish) OR recent higher highs/lows.
+* Pullback entry: today close near 21-day EMA or support zone with RSI between 40–55.
+* Score: trend strength, pullback depth, fundamentals weight (optional).
+
+C. **Day style (daily)** — since timeframe is daily, treat as **short-term** strategy:
+
+* Quick momentum: strong single-day gain with volume, but tighter stops.
+* Score: 1-day previous return, volume spike, liquidity.
+
+**Ranking:** normalized weighted sum: `rank_score = w_ta * TA_score + w_fa * FA_score + w_liq * liquidity_score`. Default weights configurable via UI.
+
+---
+
+# 7 — Key endpoints & messages (example)
+
+REST:
+
+* `GET /api/screen?strategy=breakout&top=30` → JSON list of {ticker, score, reason, entry, stop, target, last_close}
+* `GET /api/ticker/{ticker}` → {ohlcv, indicators, detected_patterns, fundamentals}
+* `POST /api/chat` → {user_message} → returns `{reply}`
+
+WebSocket messages:
+
+* Server → Client:
+
+  * `{"type":"rank_update","strategy":"breakout","timestamp":"...","results":[...]}`
+  * `{"type":"price_update","ticker":"RELIANCE","last":3450.5,"change_pct":0.8}`
+
+Client → Server:
+
+* `{"type":"subscribe","strategy":"breakout"}`
+* `{"type":"chat","message":"Explain RELIANCE breakout"}`
+
+---
+
+# 8 — Implementation details & code snippets (concise)
+
+A. Background task to poll price (FastAPI)
+
+```python
+# src/main.py (snippet)
+from fastapi import FastAPI, WebSocket
+import asyncio
+app = FastAPI()
+
+async def poll_prices():
+    while True:
+        # fetch latest daily close for tracked tickers (use fyers or nsepy fallback)
+        updates = fetch_latest_closes(tickers)
+        # push updates to connected websocket clients (store connections)
+        await push_updates_to_clients(updates)
+        await asyncio.sleep(60)  # poll every 60s; adjust per demo
+
+@app.on_event("startup")
+async def startup_event():
+    asyncio.create_task(poll_prices())
+```
+
+B. Simple breakout detector (daily)
+
+```python
+# src/ta_engine.py
+def detect_breakout(df, lookback=20, vol_multiplier=1.5):
+    window = df.tail(lookback)
+    range_high = window['High'].max()
+    range_low = window['Low'].min()
+    today = df.iloc[-1]
+    avg_vol = window['Volume'].mean()
+    if today.Close > range_high and today.Volume >= vol_multiplier * avg_vol:
+        return {
+            "pattern":"breakout",
+            "range_high":range_high,
+            "range_low":range_low,
+            "confidence": min(1.0, (today.Volume/avg_vol)/vol_multiplier)
+        }
+    return None
+```
+
+C. Ranking function (simplified)
+
+```python
+def compute_score(ta_score, fa_score, avg_daily_turnover):
+    w_ta, w_fa, w_liq = 0.6, 0.3, 0.1
+    liq_score = min(1.0, avg_daily_turnover/1e7)  # normalize
+    return w_ta*ta_score + w_fa*fa_score + w_liq*liq_score
+```
+
+D. WebSocket broadcast (FastAPI)
+(Keep a set of connected websockets and send JSON updates when ranking recalculated.)
+
+---
+
+# 9 — Chatbot implementation (working, minimal)
+
+* **Retrieval**:
+
+  * Index: last 30 days of TA outputs + fundamentals summaries + news snippets in a simple in-memory store (or SQLite table). Use sentence-transformers for embeddings if you want RAG.
+  * Retrieve 3–5 top documents relevant to user query.
+* **LLM**:
+
+  * Prompt: short system message + retrieved context + user question.
+  * Generate reply explaining signals, citing numeric evidence (e.g., “RSI=71, Volume=2.1x avg, broke range high 1.3%”).
+* **Integration**:
+
+  * `POST /api/chat` triggers retrieval & LLM call; concurrently push summary to chat UI; if user asks for a chart, frontend loads `/api/ticker/{ticker}`.
+
+Important: include one-sentence disclaimer in every chat reply: “Educational/demo only — not financial advice.”
+
+---
+
+# 10 — Demo & validation plan (what to show)
+
+1. Demo script (for grader):
+
+   * Load sample tickers CSV.
+   * Start backend. Start frontend.
+   * In UI: choose “Breakout” → watch ranked list update (show before/after examples).
+   * Click a ticker → show annotated daily chart and entry/stop/target.
+   * Chat: “Why is X top breakout?” → show LLM explanation with numbers.
+   * Show logs or saved cache files under `data/` proving reproducibility.
+
+2. Unit tests:
+
+   * TA detection: given synthetic OHLC data, detector returns expected breakout flag.
+   * Ranking: score normalization tests.
+
+3. Key deliverables:
+
+   * Repo with `src/`, `notebooks/demo.ipynb` (driver), `README.md`, and `assets/` (charts).
+   * Short demo video or script.
+
+---
+
+# 11 — Minimal deployment & run steps (for university demo)
+
+* Local dev:
+
+  1. `git clone repo`
+  2. `python -m venv .venv && source .venv/bin/activate`
+  3. `pip install -r requirements.txt`
+  4. `uvicorn src.main:app --reload`
+  5. `cd ui && npm install && npm start`
+* Production (optional): deploy backend on Render/Heroku, frontend on Netlify. Use environment variables for API keys.
+
+---
+
+# 12 — Risks & tradeoffs (short)
+
+* **Realtime accuracy**: using Fyers WebSocket provides best live quotes; polling via public sources introduces lag. Use paper/demo keys only.
+* **Rate limits**: Scraping Screener.in heavily can be blocked — cache results and limit frequency.
+* **LLM cost**: OpenAI calls cost money — for demo, pre-cache sample replies or use a small local model.
+
+---
+
+# 13 — Next concrete steps I can produce now (pick one)
+
+1. **FastAPI skeleton** (REST + WebSocket + background poller) + `ta_engine.py` breakout implementation.
+2. **React UI scaffold** (strategy selector, ranked table, chat panel) + WebSocket client example.
+3. **Complete minimal demo**: backend + frontend + small sample dataset wired end-to-end so you can run locally.
+
+
