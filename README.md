@@ -1,120 +1,168 @@
-# Trading Chatbot
+# Trading Chatbot 
 
-End-to-end trading research app (Indian markets) with FastAPI + React, live quotes, TA/FA screening, strategy ranking, and an LLM-powered RAG chat assistant.
+A powerful web application that combines real-time stock analysis, technical strategy ranking, and an AI-powered chatbot to help traders make informed decisions.
 
-## At a Glance
-- **Frontend**: React (Vite) + Tailwind + `lightweight-charts` for TradingView-style charts.
-- **Backend**: FastAPI (REST + WebSocket) with background poller.
-- **Analysis**: TA engine (EMA/RSI/MACD/Bollinger/Stoch/ATR/Support-Resistance), FA engine (Screener.in → yfinance fallback), strategy scoring (Breakout/Swing/Day), RAG Chat Agent.
-- **Data**: yfinance/nsepy + optional Fyers; caching to Parquet.
-- **LLM**: OpenAI or local Ollama (configure via `.env`).
+![Project Status](https://img.shields.io/badge/status-active-success.svg)
+![Python](https://img.shields.io/badge/python-3.9+-blue.svg)
+![React](https://img.shields.io/badge/react-18+-61DAFB.svg)
+![FastAPI](https://img.shields.io/badge/FastAPI-0.68+-009688.svg)
 
-## Architecture (Mermaid)
+## Features
+
+- **Automated Strategy Ranking**: Scans the market for Breakout, Swing, and Day trading opportunities based on daily OHLCV data.
+- **AI-Powered Analysis**: Integrated Chatbot (LLM) to explain technical signals and answer queries like "Why is RELIANCE in the top 5?".
+- **Interactive Charts**: Detailed daily candle charts with annotated patterns, entry, stop, and target levels.
+- **Real-time Updates**: WebSocket integration for live ranking updates and price changes.
+- **Fundamental Insights**: Integrates fundamental data to provide a holistic view of stocks.
+
+## Architecture
+
+The system is built with a clean separation of concerns, featuring a FastAPI backend for data processing and a React frontend for the user interface.
+
 ```mermaid
-flowchart TD
-	subgraph Frontend [Frontend (React)]
-		UI[Dashboard & Chat]
-		WS[WebSocket Client]
-		Chart[Lightweight Charts]
-	end
+graph TD
+    subgraph "Frontend (React)"
+        UI[User Interface]
+        Chart[Interactive Charts]
+        Chat[Chat Window]
+    end
 
-	subgraph Backend [FastAPI]
-		API[REST Endpoints]
-		WSS[WebSocket Server]
-		Poller[Background Poller]
-		TA[TA Engine]
-		FA[FA Engine]
-		Strat[Strategy Engine]
-		Chat[Chat Agent]
-		RAG[RAG Index]
-		LLM[LLM Client]
-	end
+    subgraph "Backend (FastAPI)"
+        API[REST API]
+        WS[WebSocket Server]
+        TA[TA Engine]
+        Strategy[Strategy Engine]
+        LLM[LLM Service]
+    end
 
-	subgraph Sources [Data Sources]
-		Fy[Fyers]
-		NSE[nsepy]
-		YF[yfinance]
-		Scr[Screener.in]
-		News[Google News RSS]
-		Cache[Parquet/Cache]
-	end
+    subgraph "Data Layer"
+        DB[("SQLite Cache")]
+        ExtAPI["External APIs (Fyers/NSE)"]
+        Scraper[Fundamental Scraper]
+    end
 
-	UI -- REST --> API
-	WS <---> WSS
-	Chart <-- REST --> API
-	API --> TA
-	API --> FA
-	API --> Strat
-	API --> Chat
-	Chat --> RAG
-	Chat --> LLM
-	Poller --> WSS
-	Poller --> Fy
-	API --> NSE
-	API --> YF
-	API --> Scr
-	API --> News
-	API <--> Cache
+    UI -->|HTTP Requests| API
+    UI <-->|Real-time Updates| WS
+    Chat -->|Queries| API
+    API --> TA
+    API --> Strategy
+    API --> LLM
+    TA --> DB
+    Strategy --> DB
+    TA --> ExtAPI
+    Scraper --> DB
 ```
 
-## Data & Indicator Flow
-1) Fetch OHLCV (yfinance/nsepy; Fyers for live). Cache to `data/cache/raw/`.
-2) `compute_indicators` (EMA 20/21/50, RSI, MACD, ATR, Bollinger, Stoch, Support/Resistance).
-3) Strategy scoring (Breakout/Swing/Day) → entry/stop/target + reasons.
-4) Fundamentals (Screener.in first, yfinance fallback) → FA score.
-5) Chat: retrieve context (TA/FA/News) → build prompt → LLM → Markdown tables/bullets.
-6) WebSocket pushes live quotes/updates to the frontend.
+## User Flow
 
-## Quick Start (Local)
+```mermaid
+sequenceDiagram
+    participant User
+    participant UI as Frontend
+    participant API as Backend
+    participant LLM as AI Service
 
-**Backend**
+    User->>UI: Select Strategy (e.g., Breakout)
+    UI->>API: Request Ranked Stocks
+    API->>API: Run Strategy Engine
+    API-->>UI: Return Ranked List
+    User->>UI: Click on Stock (e.g., TATASTEEL)
+    UI->>API: Get Details & Chart Data
+    API-->>UI: Return OHLCV & Indicators
+    User->>UI: Ask "Why is this a good buy?"
+    UI->>API: Send Chat Message
+    API->>LLM: Generate Explanation (Context: TA + Fundamentals)
+    LLM-->>API: Return Explanation
+    API-->>UI: Display AI Response
+```
+
+## Tech Stack
+
+- **Backend**: FastAPI (Python), Pandas, Pandas-TA, NumPy
+- **Frontend**: React.js, TailwindCSS (optional), Plotly/Recharts
+- **Database**: SQLite (for caching and metadata)
+- **AI/LLM**: OpenAI API (or local LLM) for natural language explanations
+- **Data Sources**: `nsepy` (Historical), Fyers (Real-time/Optional), Screener.in (Fundamentals)
+
+## Setup Instructions
+
+Follow these steps to get the project running on your local machine.
+
+### Prerequisites
+
+- Python 3.9 or higher
+- Node.js and npm
+- Git
+
+### 1. Clone the Repository
+
 ```bash
-python -m venv .venv
-source .venv/bin/activate
-pip install -r requirements.txt
-uvicorn src.main:app --reload --port 8000
+git clone https://github.com/Anshul-ydv/Trading_Chatbot.git
+cd Trading_Chatbot
 ```
 
-**Frontend**
+### 2. Backend Setup
+
+```bash
+# Create a virtual environment
+python -m venv .venv
+
+# Activate the virtual environment
+# On macOS/Linux:
+source .venv/bin/activate
+# On Windows:
+# .venv\Scripts\activate
+
+# Install dependencies
+pip install -r requirements.txt
+```
+
+### 3. Frontend Setup
+
 ```bash
 cd frontend
+# Install Node dependencies
 npm install
-npm run dev
-# open http://localhost:5173
 ```
 
-## Docker Compose
+### 4. Environment Configuration
+
+Create a `.env` file in the root directory and add your API keys:
+
+```env
+OPENAI_API_KEY=your_openai_api_key_here # Or u can use a local LLM like ollama (we used the local one so it will easier to set up)
+FYERS_APP_ID=your_fyers_app_id_here  # Optional
+FYERS_ACCESS_TOKEN=your_fyers_token_here # Optional
+```
+
+## Running the Application
+
+### Start the Backend
+
+From the root directory:
+
 ```bash
-docker-compose up --build
-# Backend: http://localhost:8000
-# Frontend: http://localhost:3000
+# Make sure your virtual environment is activated
+uvicorn src.main:app --reload
+or TCHATBOT/.venv/bin/python trading-chatbot/run.py
 ```
+The API will be available at `http://localhost:8000`.
 
-## Key Endpoints
-- `GET /api/screen?strategy=breakout` — ranked stocks with scores/reasons.
-- `GET /api/history/{ticker}` — OHLCV + indicators for chart (includes EMA21/support/resistance).
-- `POST /api/chat` — chatbot Q&A (RAG + LLM).
-- `POST /api/tickers` / `DELETE /api/tickers/{ticker}` — manage watchlist.
+### Start the Frontend
 
-## Configuration
-- Copy `.env.example` to `.env` and set: LLM provider/model, Fyers keys (optional), Screener/HTTP flags.
-- Tickers: `data/tickers.csv` (mounted via volume in Docker).
-- Caching: `data/cache/` is persisted; safe to delete to refetch.
+Open a new terminal, navigate to the `frontend` folder:
 
-## Testing
 ```bash
-pytest -q
+cd frontend
+npm start
+or cd trading-chatbot/frontend && npm run dev
 ```
+The application will open in your browser at `http://localhost:3000`.
 
-## Project Structure (high level)
-- `src/` — FastAPI app, TA/FA engines, strategy engine, chat agent, data fetchers.
-- `frontend/` — React app (Vite), chart, chat, watchlist.
-- `data/` — tickers, cache (Parquet), fundamentals samples.
-- `Dockerfile.backend`, `docker-compose.yml` — containerized dev/run.
-- `notebooks/` — ad-hoc exploration.
+## Contributing
 
-## Notes & Safety
-- Educational/demo only — not investment advice.
-- .env should never be committed; ensure secrets stay local.
+Contributions are welcome! Please feel free to submit a Pull Request.
 
+## License
 
+This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
