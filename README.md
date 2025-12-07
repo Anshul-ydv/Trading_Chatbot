@@ -135,6 +135,11 @@ FYERS_APP_ID=your_fyers_app_id_here  # Optional
 FYERS_ACCESS_TOKEN=your_fyers_token_here # Optional
 ```
 
+### 5. Fyers
+Use the authtoken.ipynb file to generate the fyers token for this project
+refer to this : https://myapi.fyers.in
+
+
 ## Running the Application
 
 ### Start the Backend
