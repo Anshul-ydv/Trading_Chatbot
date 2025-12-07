@@ -81,7 +81,7 @@ sequenceDiagram
 - **Backend**: FastAPI (Python), Pandas, Pandas-TA, NumPy
 - **Frontend**: React.js, TailwindCSS (optional), Plotly/Recharts
 - **Database**: SQLite (for caching and metadata)
-- **AI/LLM**: OpenAI API (or local LLM) for natural language explanations
+- **AI/LLM**: Ollama - llama 3.1b (or OpenAI API) for natural language explanations
 - **Data Sources**: `nsepy` (Historical), Fyers (Real-time/Optional), Screener.in (Fundamentals)
 
 ## Setup Instructions
